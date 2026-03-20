@@ -28,6 +28,11 @@ var commitCmd = &cobra.Command{
 	},
 }
 
+
+func init() {
+	rootCmd.AddCommand(commitCmd)
+}
+
 func callOllama(diff string) string {
 	url := "http://localhost:11434/api/generate"
 	prompt := "Write a concise Conventional Commit message for this diff. No conversational filler:\n\n" + diff

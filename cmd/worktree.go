@@ -2,29 +2,35 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"github.com/spf13/cobra"
 )
 
-
-var wtCmd = &cobra.Command{
-	Use:   "init [repo-url]",
-	Short: "Setup a bare repository with worktree support",
+var wtAddCmd = &cobra.Command{
+	Use:   "add [branch-name]",
+	Short: "Create a new feature worktree folder",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		repoURL := args[0]
+		branch := args[0]
 		
-		fmt.Println("📦 Cloning bare repo into .bare...")
-		exec.Command("git", "clone", "--bare", repoURL, ".bare").Run()
-
-		fmt.Println("🔗 Creating .git file pointer...")
-		os.WriteFile(".git", []byte("gitdir: ./.bare"), 0644)
-
-		fmt.Println("⚙️ Configuring fetch refspecs...")
-		exec.Command("git", "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*").Run()
+		// In a bare setup, we want the folder name to match the branch name
+		// This command creates the branch AND the folder simultaneously
+		fmt.Printf("🏗 Adding worktree for branch '%s'...\n", branch)
 		
-		fmt.Println("🌿 Adding main worktree...")
-		exec.Command("git", "worktree", "add", "main").Run()
+		// git worktree add <path> <branch>
+		// By using 'branch' as both, we get ./my-feature/ containing the my-feature branch
+		c := exec.Command("git", "worktree", "add", "-b", branch, branch)
+		
+		out, err := c.CombinedOutput()
+		if err != nil {
+			fmt.Printf("❌ Git Error: %s\n", string(out))
+			return
+		}
+		
+		fmt.Printf("✅ Worktree created! Run: cd %s\n", branch)
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(wtAddCmd)
 }
