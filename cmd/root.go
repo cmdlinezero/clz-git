@@ -18,4 +18,5 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(wtCmd)
 	rootCmd.AddCommand(commitCmd)
+	rootCmd.AddCommand(genCmd)
 }
