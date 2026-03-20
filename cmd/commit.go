@@ -55,12 +55,23 @@ func init() {
 func askOllamaForCommit(diff string) string {
 	url := fmt.Sprintf("%s/api/generate", AppConfig.Ollama.URL)
 
-	prompt := `Write a concise, professional Git commit message for these changes.
-Use the Conventional Commits format (e.g., "feat: ...", "fix: ...").
-Keep the first line under 50 characters.
+// 	prompt := `Write a concise, professional Git commit message for these changes.
+// Use the Conventional Commits format (e.g., "feat: ...", "fix: ...").
+// Keep the first line under 50 characters.
+// 
+// DIFF:
+// ` + diff
 
-DIFF:
-` + diff
+  prompt := `Analyze these git changes and write a two-part commit message.
+  1. SUBJECT: A one-line summary (max 50 chars) using Conventional Commits (e.g., "feat: add yaml config").
+  2. BODY: A concise paragraph explaining "why" the change was made and what was affected.
+  
+  Output your response in this format:
+  SUBJECT: <subject line>
+  BODY: <body paragraph>
+  
+  DIFF:
+  ` + diff
 
 	payload, _ := json.Marshal(map[string]interface{}{
 		"model":  AppConfig.Ollama.Model,
