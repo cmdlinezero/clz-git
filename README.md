@@ -2,9 +2,15 @@
 
 A simple tooling for Git Worktrees.
 
+- [x] config: Setup a yaml configuration 
 - [x] init: Setup a `bare` folder
 - [x] wt: Create worktree diretory for feature
 - [x] commit: Read diff and check with Ollama to create commit message
+- [x] gen: Generate a markdown changelog.
+
+
+
+
 
 ## Usage
 
