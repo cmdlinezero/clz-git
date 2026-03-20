@@ -8,6 +8,7 @@ import (
 	"os"
   "io"
 	"os/exec"
+  "path/filepath"
 	"text/template"
 	"strings"
 	"github.com/spf13/cobra"
@@ -54,15 +55,18 @@ const mdTemplate = `
 var (
   isLongForm bool
   versionStr string
+	targetSHA string
 )
 
 func init() {
-  // 1. Attach the main 'gen' command to the root
+  // Attach the main 'gen' command to the root
   rootCmd.AddCommand(genCmd) 
     
-  // 2. Attach the DIFFERENT 'changelog' command to 'gen'
+  // Attach the DIFFERENT 'changelog' command to 'gen'
   genCmd.AddCommand(changelogCmd) 
+
 	// Add the flag to the changelog subcommand
+	changelogCmd.Flags().StringVarP(&targetSHA, "sha", "s", "HEAD", "The specific commit SHA to analyze")
 	changelogCmd.Flags().BoolVarP(&isLongForm, "long", "l", false, "Use long form git log with file statuses")
   changelogCmd.Flags().StringVarP(&versionStr, "version", "v", "v1.0.0", "Version number for the header")
 }
@@ -79,30 +83,73 @@ var changelogCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var gitArgs []string
 
-		if isLongForm {
-			fmt.Println("🔍 Extracting detailed history (Long Form)...")
-			gitArgs = []string{"log", "-n", "5", "--pretty=format:Commit: %h %nAuthor: %an %nDate: %as %nMessage: %s", "--name-status"}
-		} else {
-			fmt.Println("📜 Extracting summary history (Short Form)...")
-			// gitArgs = []string{"log", "-n", "10", "--pretty=format:%s %cr <%an>"}
-      gitArgs = []string{
-          "log", "-n", "10", 
-          "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", 
-          "--name-status",
-      }
-		}
+    // 1. Get the current short SHA for the filename regardless of mode
+    shaCmd := exec.Command("git", "rev-parse", "--short", targetSHA)
+    shaOut, err := shaCmd.Output()
+    if err != nil {
+        fmt.Println("❌ Error: Could not resolve git SHA. Are you in a git repo?")
+        return
+    }
 
+    shortSHA := strings.TrimSpace(string(shaOut))
+    fileName := fmt.Sprintf("git-%s.md", shortSHA)
+
+    // 1. Determine the Git Command & Filename
+    if targetSHA != "" && targetSHA != "HEAD" {
+        // POINT MODE: Target one specific commit
+        fmt.Printf("🎯 Analyzing specific commit: %s\n", targetSHA)
+        gitArgs = []string{
+            "show", 
+            targetSHA, 
+            "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", 
+            "--name-status",
+        }
+
+        fileName = fmt.Sprintf("changes-%s.md", targetSHA)
+    } else {
+        fmt.Printf("📜 Generating summary for HEAD (%s)...\n", shortSHA)
+        // Use your existing log logic here
+        if isLongForm {
+            gitArgs = []string{"log", "-n", "5", "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", "--name-status"}
+        } else {
+            gitArgs = []string{"log", "-n", "10", "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", "--name-status"}
+        }
+
+        // // RANGE MODE: Your existing long/short form logic
+        // fileName = "CHANGELOG.md"
+        // if isLongForm {
+        //     fmt.Println("🔍 Extracting detailed history (Long Form)...")
+        //     gitArgs = []string{"log", "-n", "5", "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", "--name-status"}
+        // } else {
+        //     fmt.Println("📜 Extracting summary history (Short Form)...")
+        //     gitArgs = []string{"log", "-n", "10", "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", "--name-status"}
+        // }
+    }
+
+	//	if isLongForm {
+	//		fmt.Println("🔍 Extracting detailed history (Long Form)...")
+	//		gitArgs = []string{"log", "-n", "5", "--pretty=format:Commit: %h %nAuthor: %an %nDate: %as %nMessage: %s", "--name-status"}
+	//	} else {
+	//		fmt.Println("📜 Extracting summary history (Short Form)...")
+	//		// gitArgs = []string{"log", "-n", "10", "--pretty=format:%s %cr <%an>"}
+  //    gitArgs = []string{
+  //        "log", "-n", "10", 
+  //        "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", 
+  //        "--name-status",
+  //    }
+	//	}
+
+		
 		logs, err := exec.Command("git", gitArgs...).Output()
 		if err != nil {
 			fmt.Println("❌ Error fetching git logs:", err)
 			return
 		}
 
-		// fmt.Println("🤖 Ollama is drafting the markdown...")
-		// markdown := askOllamaForMarkdown(string(logs), isLongForm)
-
     fmt.Println("🤖 Extracting structured data from logs...")
 		data := askOllamaForJSON(string(logs))
+
+    if data == nil { return }
 
     if versionStr != "" {
         data.Version = versionStr
@@ -120,11 +167,8 @@ var changelogCmd = &cobra.Command{
 			return
 		}
 
-		// os.WriteFile("CHANGELOG_DRAFT.md", []byte(markdown), 0644)
-		// fmt.Println("✨ Done! Created CHANGELOG_DRAFT.md")
-    // Save result
-		os.WriteFile("CHANGELOG.md", buf.Bytes(), 0644)
-		fmt.Println("✨ Structured CHANGELOG.md has been generated.")
+		os.WriteFile(fileName, buf.Bytes(), 0644)
+		fmt.Printf("✨ Generated: %s for target SHA %s.\n", filepath.Base(fileName), targetSHA)
 	},
 }
 

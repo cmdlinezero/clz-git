@@ -8,10 +8,6 @@ A simple tooling for Git Worktrees.
 - [x] commit: Read diff and check with Ollama to create commit message
 - [x] gen: Generate a markdown changelog.
 
-
-
-
-
 ## Usage
 
 1. Run the command:
@@ -29,10 +25,12 @@ A simple tooling for Git Worktrees.
      git-back [command]
    
    Available Commands:
-     commit      Generate AI commit message from staged changes
+     add         Create a new feature worktree folder
+     commit      Generate an AI commit message from staged changes
      completion  Generate the autocompletion script for the specified shell
+     config      Manage git-back configuration
+     gen         Generate documentation from git history
      help        Help about any command
-     init        Setup a bare repository with worktree support
      init        Setup a bare repository with worktree support
    
    Flags:
