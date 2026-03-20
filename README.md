@@ -35,3 +35,23 @@ A simple tooling for Git Worktrees.
    Use "git-back [command] --help" for more information about a command.
    ```
 
+## Init
+
+1. Create a work folder
+   ```bash
+   mkdir my_folder && cd $_
+   ```
+   
+2. Initialise a worktree
+   ```bash
+   git-back init [repo-url]
+   ```
+
+   > Note: The init command initializes a bare folder for the repository URL specified.
+   
+   __Expected Output__
+   ```
+   .bare
+   .git
+   main
+   ```
