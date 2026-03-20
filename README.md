@@ -1,6 +1,7 @@
 # Git Back
 
 A simple tooling for Git Worktrees.
+Integrates LLM functionality through OLLAMA API.
 
 - [x] config: Setup a yaml configuration 
 - [x] init: Setup a `bare` folder
