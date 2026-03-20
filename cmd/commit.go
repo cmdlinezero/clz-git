@@ -24,18 +24,18 @@ var commitCmd = &cobra.Command{
 		}
 
 		fmt.Println("🤖 Analyzing changes and drafting message...")
-		msg := askOllamaForCommit(string(diff))
+		subject, body := askOllamaForCommit(string(diff))
 
-		if msg == "" {
-			fmt.Println("❌ Failed to generate a message.")
+		if subject == "" {
+			fmt.Println("❌ Failed to generate a subject.")
 			return
 		}
 
 		// 2. Show the user the message
-		fmt.Printf("\nProposed Commit Message:\n---\n%s\n---\n", msg)
+    fmt.Printf("\nDrafting Commit:\nTitle: %s\nBody:  %s\n", subject, body)
 
-		// 3. Execute the commit
-		commitExec := exec.Command("git", "commit", "-m", msg)
+    // Execute: git commit -m "Subject" -m "Body"
+    commitExec := exec.Command("git", "commit", "-m", subject, "-m", body)
 		commitExec.Stdout = os.Stdout
 		commitExec.Stderr = os.Stderr
 		
@@ -52,15 +52,8 @@ func init() {
 	rootCmd.AddCommand(commitCmd)
 }
 
-func askOllamaForCommit(diff string) string {
+func askOllamaForCommit(diff string) (string, string) {
 	url := fmt.Sprintf("%s/api/generate", AppConfig.Ollama.URL)
-
-// 	prompt := `Write a concise, professional Git commit message for these changes.
-// Use the Conventional Commits format (e.g., "feat: ...", "fix: ...").
-// Keep the first line under 50 characters.
-// 
-// DIFF:
-// ` + diff
 
   prompt := `Analyze these git changes and write a two-part commit message.
   1. SUBJECT: A one-line summary (max 50 chars) using Conventional Commits (e.g., "feat: add yaml config").
@@ -81,12 +74,24 @@ func askOllamaForCommit(diff string) string {
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	defer resp.Body.Close()
 
-	var res struct{ Response string }
+  var res struct{ Response string }
 	json.NewDecoder(resp.Body).Decode(&res)
-	
-	return strings.TrimSpace(res.Response)
+
+	// Simple parser to split the AI response
+	lines := strings.Split(res.Response, "\n")
+	var subject, body string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "SUBJECT:") {
+			subject = strings.TrimSpace(strings.TrimPrefix(line, "SUBJECT:"))
+		} else if strings.HasPrefix(line, "BODY:") {
+			body = strings.TrimSpace(strings.TrimPrefix(line, "BODY:"))
+		}
+	}
+
+	return subject, body
+
 }
