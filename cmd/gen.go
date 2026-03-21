@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"log"
   "io"
 	"os/exec"
   "path/filepath"
@@ -114,32 +115,8 @@ var changelogCmd = &cobra.Command{
         } else {
             gitArgs = []string{"log", "-n", "10", "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", "--name-status"}
         }
-
-        // // RANGE MODE: Your existing long/short form logic
-        // fileName = "CHANGELOG.md"
-        // if isLongForm {
-        //     fmt.Println("🔍 Extracting detailed history (Long Form)...")
-        //     gitArgs = []string{"log", "-n", "5", "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", "--name-status"}
-        // } else {
-        //     fmt.Println("📜 Extracting summary history (Short Form)...")
-        //     gitArgs = []string{"log", "-n", "10", "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", "--name-status"}
-        // }
     }
 
-	//	if isLongForm {
-	//		fmt.Println("🔍 Extracting detailed history (Long Form)...")
-	//		gitArgs = []string{"log", "-n", "5", "--pretty=format:Commit: %h %nAuthor: %an %nDate: %as %nMessage: %s", "--name-status"}
-	//	} else {
-	//		fmt.Println("📜 Extracting summary history (Short Form)...")
-	//		// gitArgs = []string{"log", "-n", "10", "--pretty=format:%s %cr <%an>"}
-  //    gitArgs = []string{
-  //        "log", "-n", "10", 
-  //        "--pretty=format:---%nHash: %h%nAuthor: %an%nDate: %as%nMessage: %s", 
-  //        "--name-status",
-  //    }
-	//	}
-
-		
 		logs, err := exec.Command("git", gitArgs...).Output()
 		if err != nil {
 			fmt.Println("❌ Error fetching git logs:", err)
@@ -165,6 +142,13 @@ var changelogCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println("❌ Template error:", err)
 			return
+		}
+
+		changelogDir := "changelog"
+
+		// Create the directory if it doesn't exist (Perm 0755 is standard for rwxr-xr-x)
+		if err := os.MkdirAll(changelogDir, 0755); err != nil {
+			log.Fatalf("Failed to create %s directory: %v", changelogDir, err)
 		}
 
 		os.WriteFile(fileName, buf.Bytes(), 0644)
