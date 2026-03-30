@@ -12,10 +12,3 @@ func Execute() {
 		panic(err)
 	}
 }
-
-func init() {
-	// Centralized command registration
-	rootCmd.AddCommand(initCmd)
-	rootCmd.AddCommand(wtCmd)
-	rootCmd.AddCommand(commitCmd)
-}
