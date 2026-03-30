@@ -28,3 +28,8 @@ var initCmd = &cobra.Command{
 		exec.Command("git", "worktree", "add", "main").Run()
 	},
 }
+
+func init() {
+	// Centralized command registration
+	rootCmd.AddCommand(initCmd)
+}
