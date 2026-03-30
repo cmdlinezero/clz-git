@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-  "os"
+	"os"
 	"net/http"
 	"os/exec"
   "strings"
@@ -34,7 +34,7 @@ var commitCmd = &cobra.Command{
 		// }
 
 		fmt.Println("🤖 Requesting AI commit message...")
-		msg, err := callOllama(string(diff))
+		subject, body, err := callOllama(string(diff))
 
     if err != nil {
 			fmt.Printf("❌ AI Error: %v\n", err)
@@ -43,10 +43,10 @@ var commitCmd = &cobra.Command{
 			return // EXIT HERE:
 		}
 		
-		fmt.Printf("\n📝 AI Suggestion: %s\n", msg)
+		fmt.Printf("\n📝 AI Suggestion:\nsubject: %s\nbody: %s\n", subject, body)
 
     // Execute the actual git commit
-		commitExec := exec.Command("git", "commit", "-m", msg)
+		commitExec := exec.Command("git", "commit", "-m", subject, "-m", body)
 		commitExec.Stdout = os.Stdout
 		commitExec.Stderr = os.Stderr
 
@@ -64,10 +64,21 @@ func init() {
 	rootCmd.AddCommand(commitCmd)
 }
 
-func callOllama(diff string) (string, error) {
+func callOllama(diff string) (string, string, error) {
   apiEndpoint := AppConfig.Ollama.URL + "/api/generate"
 
-	prompt := "Write a concise Conventional Commit message for this diff. No conversational filler:\n\n" + diff
+  prompt := `Analyze these git changes and write a two-part commit message.
+  1. SUBJECT: A one-line summary (max 50 chars) using Conventional Commits (e.g., "feat: add yaml config").
+  2. BODY: A concise paragraph explaining "why" the change was made and what was affected.
+  
+  Output your response in this format:
+  SUBJECT: <subject line>
+  BODY: <body paragraph>
+  
+  DIFF:
+  ` + diff
+
+//	prompt := "Write a concise Conventional Commit message for this diff. No conversational filler:\n\n" + diff
 	
 	payload, _ := json.Marshal(map[string]interface{}{
 		"model": AppConfig.Ollama.Model, "prompt": prompt, "stream": false,
@@ -83,7 +94,7 @@ func callOllama(diff string) (string, error) {
     // Check if the error is specifically a connection failure
     fmt.Printf("⚠️  Ollama appears to be offline at %s\n", AppConfig.Ollama.Model)
     fmt.Println("👉 Check if Ollama is running: 'ollama serve'")
-		return "❌ fix: Manual update required (Ollama Offline)", err
+		return "Ollama Error", "❌ fix: Manual update required (Ollama Offline)", err
 	}
 	
 	defer resp.Body.Close()
@@ -91,9 +102,20 @@ func callOllama(diff string) (string, error) {
 	var res struct{ Response string `json:"response"` }
   if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		// return "", fmt.Errorf("failed to decode AI response")
-    return "", err
+    return "", "", err
 
 	}
 
-  return strings.TrimSpace(res.Response), nil
+ 	// Simple parser to split the AI response
+ 	lines := strings.Split(res.Response, "\n")
+ 	var subject, body string
+ 	for _, line := range lines {
+ 		if strings.HasPrefix(line, "SUBJECT:") {
+ 			subject = strings.TrimSpace(strings.TrimPrefix(line, "SUBJECT:"))
+ 		} else if strings.HasPrefix(line, "BODY:") {
+ 			body = strings.TrimSpace(strings.TrimPrefix(line, "BODY:"))
+ 		}
+ 	}
+
+ 	return subject, body, nil
 }
