@@ -4,14 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
   "os"
 	"net/http"
-	"os"
 	"os/exec"
-  "path/filepath"
   "strings"
-
 
 	"github.com/spf13/cobra"
 )
@@ -29,13 +25,13 @@ var commitCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Println("🤖 Analyzing changes and drafting message...")
-		subject, body := askOllamaForCommit(string(diff))
+		// fmt.Println("🤖 Analyzing changes and drafting message...")
+		// subject, body := askOllamaForCommit(string(diff))
 
-		if subject == "" {
-			fmt.Println("❌ Failed to generate a subject.")
-			return
-		}
+		// if subject == "" {
+		// 	fmt.Println("❌ Failed to generate a subject.")
+		// 	return
+		// }
 
 		fmt.Println("🤖 Requesting AI commit message...")
 		msg, err := callOllama(string(diff))
@@ -63,47 +59,9 @@ var commitCmd = &cobra.Command{
 	},
 }
 
-// Inside cmd/config.go
-var configInitCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Initialize a default configuration file in home directory",
-	Run: func(cmd *cobra.Command, args []string) {
-		home, _ := os.UserHomeDir()
-		path := filepath.Join(home, ".git-back.yaml")
-
-		// Don't overwrite if it already exists
-		if _, err := os.Stat(path); err == nil {
-			fmt.Printf("⚠️  Config file already exists at %s\n", path)
-			return
-		}
-
-		// Create a default config object
-		defaultConfig := Config{}
-
-		// defaultConfig.Ollama.URL = "http://localhost:11434"
-		// defaultConfig.Ollama.Model = "gemma3:latest"
-
-    defaultConfig.Ollama.URL = AppConfig.Ollama.URL
-    defaultConfig.Ollama.Model = AppConfig.Ollama.Model
-
-		// Marshal to YAML
-		data, _ := yaml.Marshal(&defaultConfig)
-		
-		// Write to disk
-		err := os.WriteFile(path, data, 0644)
-		if err != nil {
-			fmt.Printf("❌ Error creating config: %v\n", err)
-			return
-		}
-
-		fmt.Printf("✨ Created default configuration at %s\n", path)
-	},
-}
-
 func init() {
 	// Centralized command registration
 	rootCmd.AddCommand(commitCmd)
-	rootCmd.AddCommand(configInitCmd)
 }
 
 func callOllama(diff string) (string, error) {
