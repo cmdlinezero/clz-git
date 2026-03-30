@@ -29,5 +29,6 @@ pkgs.mkShell {
 
     # Perform Tmux Dev Layout
     exec dev-tmux
+    echo "Exited $LANGUAGE session."
   '';
 }
