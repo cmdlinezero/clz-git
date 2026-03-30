@@ -96,13 +96,19 @@ func init() {
 }
 
 func callOllama(diff string) (string, error) {
+  apiEndpoint := AppConfig.Ollama.URL + "/api/generate"
+
 	prompt := "Write a concise Conventional Commit message for this diff. No conversational filler:\n\n" + diff
 	
 	payload, _ := json.Marshal(map[string]interface{}{
 		"model": AppConfig.Ollama.Model, "prompt": prompt, "stream": false,
 	})
 
-	resp, err := http.Post(AppConfig.Ollama.Model, "application/json", bytes.NewBuffer(payload))
+
+  fmt.Printf("URL: %s\n", apiEndpoint)
+  fmt.Printf("MODEL: %s\n", AppConfig.Ollama.Model)
+
+	resp, err := http.Post(apiEndpoint, "application/json", bytes.NewBuffer(payload))
 
 	if err != nil {
     // Check if the error is specifically a connection failure
