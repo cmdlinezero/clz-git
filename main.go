@@ -1,6 +1,9 @@
 package main
 
-import "git-back/cmd"
+import (
+	"fmt"
+	"git-back/cmd"
+)
 
 func main() {
   // Load the YAML (or defaults) before doing anything else

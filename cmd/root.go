@@ -1,6 +1,9 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"os"
+	"github.com/spf13/cobra"
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "git-back",
@@ -9,6 +12,6 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		panic(err)
+		os.Exit(1)
 	}
 }

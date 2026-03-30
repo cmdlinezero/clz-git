@@ -7,9 +7,11 @@ import (
 	"gopkg.in/yaml.v3"
   "os"
 	"net/http"
+	"os"
 	"os/exec"
   "path/filepath"
   "strings"
+
 
 	"github.com/spf13/cobra"
 )
@@ -20,9 +22,18 @@ var commitCmd = &cobra.Command{
 	Short: "Generate AI commit message from staged changes",
 	Long:  "Generate AI commit message from staged changes. Perform git commit on the active worktree/branch in preparation to sync files from staging to remote.",
 	Run: func(cmd *cobra.Command, args []string) {
-		diff, _ := exec.Command("git", "diff", "--cached").Output()
-		if len(diff) == 0 {
-			fmt.Println("⚠️ No changes staged. Run 'git add' first.")
+		// 1. Get staged changes
+		diff, err := exec.Command("git", "diff", "--cached").Output()
+		if err != nil || len(diff) == 0 {
+			fmt.Println("⚠️ No staged changes found. Run 'git add' first.")
+			return
+		}
+
+		fmt.Println("🤖 Analyzing changes and drafting message...")
+		subject, body := askOllamaForCommit(string(diff))
+
+		if subject == "" {
+			fmt.Println("❌ Failed to generate a subject.")
 			return
 		}
 
