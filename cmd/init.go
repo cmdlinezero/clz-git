@@ -10,7 +10,8 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init [repo-url]",
-	Short: "Setup a bare repository with worktree support",
+	Short: "Init a bare repository with worktree support",
+	Long:  "Initialise a bare repository with worktree support.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repoURL := args[0]

@@ -6,11 +6,9 @@ import (
 )
 
 func main() {
+  // Load the YAML (or defaults) before doing anything else
+  cmd.LoadConfig()
 
-	// Load User configure
-	if err := cmd.LoadConfig(); err != nil {
-		fmt.Printf("Warning: Could not load config: %v\n", err)
-	}
-
+  // Start the Cobra CLI
 	cmd.Execute()
 }

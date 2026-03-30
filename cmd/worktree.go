@@ -6,31 +6,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var wtAddCmd = &cobra.Command{
+
+var addCmd = &cobra.Command{
 	Use:   "add [branch-name]",
-	Short: "Create a new feature worktree folder",
+	Short: "Add a new feature worktree folder",
+  Long:  "This is the command you use daily to create a new folder for a feature e.g. git checkout -b.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		branch := args[0]
+		branchName := args[0]
 		
-		// In a bare setup, we want the folder name to match the branch name
-		// This command creates the branch AND the folder simultaneously
-		fmt.Printf("🏗 Adding worktree for branch '%s'...\n", branch)
+		fmt.Printf("🌿 Creating worktree for branch: %s\n", branchName)
 		
-		// git worktree add <path> <branch>
-		// By using 'branch' as both, we get ./my-feature/ containing the my-feature branch
-		c := exec.Command("git", "worktree", "add", "-b", branch, branch)
+		// This runs: git worktree add <branchName>
+		// If the branch doesn't exist, Git will create it based on the folder name
+		out, err := exec.Command("git", "worktree", "add", branchName).CombinedOutput()
 		
-		out, err := c.CombinedOutput()
 		if err != nil {
-			fmt.Printf("❌ Git Error: %s\n", string(out))
+			fmt.Printf("❌ Failed to add worktree: %s\n%s", err, string(out))
 			return
 		}
-		
-		fmt.Printf("✅ Worktree created! Run: cd %s\n", branch)
+
+		fmt.Printf("✨ Worktree created in folder: ./%s\n", branchName)
+		fmt.Printf("👉 Run: cd %s\n", branchName)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(wtAddCmd)
+	rootCmd.AddCommand(addCmd)
 }
