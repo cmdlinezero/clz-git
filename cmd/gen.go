@@ -292,6 +292,7 @@ title: "Dev Journal %s (%s)"
 description: "Changelog Update"
 date: %s
 category: "Developer Journal"
+categories: [ "changelog", "journal" ]
 tags: [ "changelog", "release" ]
 duration: 5:00
 draft: true

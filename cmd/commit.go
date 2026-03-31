@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	_ "os"
 	"net/http"
+  "os"
 	"os/exec"
   "strings"
 
@@ -18,6 +18,7 @@ var commitCmd = &cobra.Command{
 	Short: "Generate AI commit message from staged changes",
 	Long:  "Generate AI commit message from staged changes. Perform git commit on the active worktree/branch in preparation to sync files from staging to remote.",
 	Run: func(cmd *cobra.Command, args []string) {
+
 		// 1. Get staged changes
 		diff, err := exec.Command("git", "diff", "--cached").Output()
 		if err != nil || len(diff) == 0 {
@@ -49,17 +50,41 @@ var commitCmd = &cobra.Command{
         fmt.Printf("Git Output: %s\n", string(output))
         return
     }
-    
-    // Double check if a commit actually happened
-    sha, _ := exec.Command("git", "rev-parse", "HEAD").Output()
-    fmt.Printf("✅ Committed successfully! New SHA: %s\n", string(sha[:7]))
+		
+    // Get the SHA of the code commit for the filename
+    shaOut, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+    shortSHA := strings.TrimSpace(string(shaOut))
 
-    // if err := commitExec.Run(); err != nil {
-		// 	fmt.Printf("❌ Git commit failed: %v\n", err)
-		// 	return
-		// }
+    // 5. GENERATE THE FILE: Prepend Hugo Frontmatter
+    reviewFileName := fmt.Sprintf("review-%s.md", shortSHA)
+    // finalReview := getHugoFrontmatter("Review: "+shortSHA, "Audit for "+subject) + report
+    finalReview := getHugoFrontmatter("Review: "+shortSHA, "Audit for "+subject) + body 
+    os.WriteFile(reviewFileName, []byte(finalReview), 0644)
 
-		// fmt.Println("✅ Committed successfully!")
+    // 5. EXTRACT Commit Message from the Review
+    // We grab the first few lines of the AI response to use as the commit subject
+    lines := strings.Split(finalReview, "\n")
+    subject = "feat: AI-assisted code review" // Fallback
+    for _, line := range lines {
+        cleanLine := strings.TrimSpace(strings.ReplaceAll(line, "#", ""))
+        if cleanLine != "" {
+            subject = cleanLine
+            if len(subject) > 50 { subject = subject[:47] + "..." }
+            break
+        }
+    }
+
+    // 6. Final Commit
+    // We intentionally do NOT 'git add' the review file here 
+    // unless you want it tracked in this specific commit.
+    commitExec = exec.Command("git", "commit", "-m", subject, "-m", "See "+reviewFileName+" for details.")
+    if err := commitExec.Run(); err != nil {
+        fmt.Printf("❌ Commit failed: %v\n", err)
+        return
+    }
+
+    fmt.Printf("✅ Success! Code committed (%s) and Review doc added.\n", shortSHA)
+
 	},
 }
 

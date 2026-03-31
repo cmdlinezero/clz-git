@@ -105,7 +105,7 @@ var reviewCmd = &cobra.Command{
 }
 
 func init() {
-  reviewCmd.Flags().BoolVarP(&includeStaticSite, "site", "s", false, "Include Hugo Static Site frontmatter in the output")
+  reviewCmd.Flags().BoolVarP(&includeStaticSite, "blog", "b", false, "Include Hugo Static Site frontmatter in the output")
 	rootCmd.AddCommand(reviewCmd)
 }
 
@@ -121,7 +121,8 @@ func getHugoFrontmatter(repoName string, description string) string {
 title: "%s"
 description: "%s"
 date: %s
-category: "Developer Journal"
+category: "Code Review"
+categories: [ "review", "code" ]
 tags: [ "review", "security" ]
 duration: 5:00
 draft: true
