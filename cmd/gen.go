@@ -12,6 +12,8 @@ import (
   "path/filepath"
 	"text/template"
 	"strings"
+  "time"
+
 	"github.com/spf13/cobra"
 )
 
@@ -57,6 +59,7 @@ var (
   isLongForm bool
   versionStr string
 	targetSHA string
+	includeHugo bool
 )
 
 func init() {
@@ -70,6 +73,7 @@ func init() {
 	changelogCmd.Flags().StringVarP(&targetSHA, "sha", "s", "HEAD", "The specific commit SHA to analyze")
 	changelogCmd.Flags().BoolVarP(&isLongForm, "long", "l", false, "Use long form git log with file statuses")
   changelogCmd.Flags().StringVarP(&versionStr, "version", "v", "v1.0.0", "Version number for the header")
+	changelogCmd.Flags().BoolVarP(&includeHugo, "blog", "b", false, "Include Hugo frontmatter header")
 }
 
 
@@ -144,6 +148,17 @@ var changelogCmd = &cobra.Command{
 			return
 		}
 
+    // --- HUGO INTEGRATION START ---
+    var finalContent []byte
+
+    if includeHugo {
+        header := getChangelogHugoFrontmatter(shortSHA)
+        finalContent = append([]byte(header), buf.Bytes()...)
+    } else {
+        finalContent = buf.Bytes()
+    }
+    // --- HUGO INTEGRATION END ---
+
 		changelogDir := "changelog"
 
 		// Create the directory if it doesn't exist (Perm 0755 is standard for rwxr-xr-x)
@@ -151,8 +166,16 @@ var changelogCmd = &cobra.Command{
 			log.Fatalf("Failed to create %s directory: %v", changelogDir, err)
 		}
 
-		os.WriteFile(fileName, buf.Bytes(), 0644)
-		fmt.Printf("✨ Generated: %s for target SHA %s.\n", filepath.Base(fileName), targetSHA)
+    // Use filepath.Join to ensure it saves INSIDE the changelog directory
+    fullPath := filepath.Join(changelogDir, fileName)
+    
+    err = os.WriteFile(fullPath, finalContent, 0644)
+    if err != nil {
+        fmt.Printf("❌ Failed to write file: %v\n", err)
+        return
+    }
+
+    fmt.Printf("✨ Generated: %s in %s/ for target SHA %s.\n", filepath.Base(fileName), changelogDir, targetSHA)
 	},
 }
 
@@ -252,46 +275,34 @@ func askOllamaForMarkdown(logs string, detailed bool) string {
 }
 
 
-// func askOllamaForCommit(diff string) (string, string) {
-// 	url := fmt.Sprintf("%s/api/generate", AppConfig.Ollama.URL)
-// 
-//   prompt := `Analyze these git changes and write a two-part commit message.
-//   1. SUBJECT: A one-line summary (max 50 chars) using Conventional Commits (e.g., "feat: add yaml config").
-//   2. BODY: A concise paragraph explaining "why" the change was made and what was affected.
-//   
-//   Output your response in this format:
-//   SUBJECT: <subject line>
-//   BODY: <body paragraph>
-//   
-//   DIFF:
-//   ` + diff
-// 
-// 	payload, _ := json.Marshal(map[string]interface{}{
-// 		"model":  AppConfig.Ollama.Model,
-// 		"prompt": prompt,
-// 		"stream": false,
-// 	})
-// 
-// 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
-// 	if err != nil {
-// 		return "", ""
-// 	}
-// 	defer resp.Body.Close()
-// 
-//   var res struct{ Response string }
-// 	json.NewDecoder(resp.Body).Decode(&res)
-// 
-// 	// Simple parser to split the AI response
-// 	lines := strings.Split(res.Response, "\n")
-// 	var subject, body string
-// 	for _, line := range lines {
-// 		if strings.HasPrefix(line, "SUBJECT:") {
-// 			subject = strings.TrimSpace(strings.TrimPrefix(line, "SUBJECT:"))
-// 		} else if strings.HasPrefix(line, "BODY:") {
-// 			body = strings.TrimSpace(strings.TrimPrefix(line, "BODY:"))
-// 		}
-// 	}
-// 
-// 	return subject, body
-// 
-// }
+// Helper to generate the specific Hugo header for Changelogs
+func getChangelogHugoFrontmatter(shortSHA string) string {
+    currentDate := time.Now().Format("2006-01-02")
+    
+    // Get Repo Name
+    // out, _ := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+    // repoName := filepath.Base(strings.TrimSpace(string(out)))
+
+    // if repoName == "." || repoName == "/" {
+    //     repoName = "Git Back"
+    // }
+
+    return fmt.Sprintf(`---
+title: "Dev Journal %s (%s)"
+description: "Changelog Update"
+date: %s
+category: "Developer Journal"
+tags: [ "changelog", "release" ]
+duration: 5:00
+draft: true
+hero_title: "git-back"
+hero_image: "/images/labdemo-logo.png"
+image: "/images/labdemo-logo.png"
+issue: 4
+volume: 1
+special_edition: false
+---
+
+`, currentDate, shortSHA, currentDate)
+}
+
