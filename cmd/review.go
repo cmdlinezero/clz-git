@@ -24,8 +24,36 @@ var reviewCmd = &cobra.Command{
 
     var finalOutput string
 
+    var diff []byte
+    var reviewTarget string
+
+    // Add Intelligence to generate REVIEW 
+
+    // 1. Try Staged Changes
+    diff, _ = exec.Command("git", "diff", "--cached").Output()
+    if len(diff) > 0 {
+        reviewTarget = "Staged Changes"
+    }
+
+    // 2. Fallback to Unstaged Changes (WIP)
+    if len(diff) == 0 {
+        diff, _ = exec.Command("git", "diff").Output()
+        if len(diff) > 0 {
+            reviewTarget = "Unstaged Changes (WIP)"
+        }
+    }
+
+    // 3. Fallback to Last Commit
+    if len(diff) == 0 {
+        fmt.Println("📝 No local changes found. Reviewing the last commit...")
+        diff, _ = exec.Command("git", "diff", "HEAD~1", "HEAD").Output()
+        reviewTarget = "Last Commit (HEAD)"
+    }
+
+    fmt.Printf("🔍 AI is reviewing: %s\n", reviewTarget)
+
 		// 1. Get staged changes (consistent with commit command)
-		diff, _ := exec.Command("git", "diff", "--cached").Output()
+		diff, _ = exec.Command("git", "diff", "--cached").Output()
 		if len(diff) == 0 {
 			fmt.Println("⚠️  No staged changes to review. Run 'git add' first.")
 			return
@@ -35,13 +63,14 @@ var reviewCmd = &cobra.Command{
     outName, _ := exec.Command("git", "rev-parse", "--show-toplevel").Output()
     repoName := filepath.Base(strings.TrimSpace(string(outName)))
 
-		// 2. Get the Current Short SHA
+		// Get the Current Short SHA
 		shaOut, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 		shortSHA := strings.TrimSpace(string(shaOut))
 
     // Get Current Branch for the Description
     branchOut, _ := exec.Command("git", "branch", "--show-current").Output()
     branchName := strings.TrimSpace(string(branchOut))
+
 		// Prepare the dynamic fields
 		// Title: clz-git (a1b2c3d)
 		dynamicTitle := fmt.Sprintf("%s (%s)", repoName, shortSHA)
