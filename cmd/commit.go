@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
+	_ "os"
 	"net/http"
 	"os/exec"
   "strings"
@@ -25,14 +25,6 @@ var commitCmd = &cobra.Command{
 			return
 		}
 
-		// fmt.Println("🤖 Analyzing changes and drafting message...")
-		// subject, body := askOllamaForCommit(string(diff))
-
-		// if subject == "" {
-		// 	fmt.Println("❌ Failed to generate a subject.")
-		// 	return
-		// }
-
 		fmt.Println("🤖 Requesting AI commit message...")
 		subject, body, err := callOllama(string(diff))
 
@@ -47,15 +39,27 @@ var commitCmd = &cobra.Command{
 
     // Execute the actual git commit
 		commitExec := exec.Command("git", "commit", "-m", subject, "-m", body)
-		commitExec.Stdout = os.Stdout
-		commitExec.Stderr = os.Stderr
+		// commitExec.Stdout = os.Stdout
+		// commitExec.Stderr = os.Stderr
 
-    if err := commitExec.Run(); err != nil {
-			fmt.Printf("❌ Git commit failed: %v\n", err)
-			return
-		}
+    output, err := commitExec.CombinedOutput() // Captures both Stdout and Stderr
+    
+    if err != nil {
+        fmt.Printf("❌ Git commit failed: %v\n", err)
+        fmt.Printf("Git Output: %s\n", string(output))
+        return
+    }
+    
+    // Double check if a commit actually happened
+    sha, _ := exec.Command("git", "rev-parse", "HEAD").Output()
+    fmt.Printf("✅ Committed successfully! New SHA: %s\n", string(sha[:7]))
 
-		fmt.Println("✅ Committed successfully!")
+    // if err := commitExec.Run(); err != nil {
+		// 	fmt.Printf("❌ Git commit failed: %v\n", err)
+		// 	return
+		// }
+
+		// fmt.Println("✅ Committed successfully!")
 	},
 }
 
