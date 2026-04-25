@@ -1,5 +1,11 @@
 # Git Back
 
+![Beta](https://img.shields.io/badge/Release%20Status-Beta-red)
+![Tag](https://img.shields.io/github/v/tag/cmdlinezero/clz-git?label=Tag)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE)
+![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)
+![Platforms](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20MacOS-green)
+
 `git-back` is a modern Git workflow manager that automates the setup of Bare Repositories and Worktrees, supercharged with local AI for commit messages and changelog generation.
 
 Stop stashing and context-switching. Start using isolated environments for every feature, documented automatically by LLMs.
